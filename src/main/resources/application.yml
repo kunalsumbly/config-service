@@ -1,0 +1,28 @@
+server:
+  port: 8888
+  tomcat:
+    connection-timeout: 2s
+    keep-alive-timeout: 15s
+    threads:
+      max: 50
+      min: 10
+
+spring:
+  application:
+    name: config-service
+  profiles:
+    active: awss3
+  cloud:
+    config:
+      server:
+        awss3:
+          bucket: test-kunal-pii-logs
+          region: ap-southeast-2
+          prefix: config
+#        git:
+#          uri: https://github.com/kunalsumbly/catalog-service-config.git
+#          default-label: main
+#          timeout: 5
+#          clone-on-start: true
+#          force-pull: true
+

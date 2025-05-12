@@ -1,0 +1,23 @@
+<configuration debug="true">
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- encoders are assigned the type ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <pattern>%date{dd-MMM-yyyy HH:mm:ss.SSS} [%X{_X_MOA_MSISDN_}] [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+
+
+
+    <logger name="org.springframework" level="DEBUG" />
+    <logger name="com.google.code" level="INFO" />
+    <logger name="net.rubyeye" level="INFO" />
+
+    <!-- for Apache http client -->
+    <logger name="httpclient.wire" />
+
+    <logger name="org.apache.http" />
+    <root level="info">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

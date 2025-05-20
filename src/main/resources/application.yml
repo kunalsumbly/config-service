@@ -19,12 +19,11 @@ spring:
           bucket: test-kunal-pii-logs
           region: ap-southeast-2
           prefix: config
-#        git:
-#          uri: https://github.com/kunalsumbly/catalog-service-config.git
-#          default-label: main
-#          timeout: 5
-#          clone-on-start: true
-#          force-pull: true
+    retry:
+      max-attempts: 6
+      initial-interval: 1000
+      max-interval: 10000
+      multiplier: 2.0
     bus:
       enabled: true
   rabbitmq:
@@ -33,7 +32,7 @@ spring:
     username: ${SPRING_RABBITMQ_USERNAME:guest}     # Default to 'guest' if not set
     password: ${SPRING_RABBITMQ_PASSWORD:guest}     # Default to 'guest' if not set
     ssl:
-      enabled: true
+      enabled: ${SPRING_RABBITMQ_SSL_ENABLED:false}
       validate-server-certificate: false
       hostname-verification: false
     retry:

@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y curl
 COPY build/libs/config-service-0.0.1-SNAPSHOT.jar /app/config-service.jar
 
 # Expose port 8080 (for documentation only)
-EXPOSE 8080
+EXPOSE 8888
 
 # Command to run the app
 ENTRYPOINT ["java", "-jar", "/app/config-service.jar"]

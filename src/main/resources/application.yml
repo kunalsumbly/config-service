@@ -1,5 +1,6 @@
 server:
   port: 8888
+  host: ${SERVER_HOST:localhost}
   tomcat:
     connection-timeout: 2s
     keep-alive-timeout: 15s
@@ -16,7 +17,7 @@ spring:
     config:
       server:
         awss3:
-          bucket: test-kunal-pii-logs
+          bucket:
           region: ap-southeast-2
           prefix: config
     retry:
@@ -26,8 +27,13 @@ spring:
       multiplier: 2.0
     bus:
       enabled: true
+      retry:
+        max-attempts: 6
+        initial-interval: 1000
+        max-interval: 10000
+        multiplier: 2.0
   rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:rabbitmq}          # Default to 'rabbitmq' if not set
+    host: ${SPRING_RABBITMQ_HOST:localhost}          # Default to 'rabbitmq' if not set
     port: ${SPRING_RABBITMQ_PORT:5672}              # Default to 5672 if not set
     username: ${SPRING_RABBITMQ_USERNAME:guest}     # Default to 'guest' if not set
     password: ${SPRING_RABBITMQ_PASSWORD:guest}     # Default to 'guest' if not set

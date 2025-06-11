@@ -17,7 +17,7 @@ spring:
     config:
       server:
         awss3:
-          bucket:
+          bucket: test-kunal-pii-logs
           region: ap-southeast-2
           prefix: config
     retry:

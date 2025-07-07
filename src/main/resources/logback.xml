@@ -10,6 +10,7 @@
 
 
     <logger name="org.springframework" level="DEBUG" />
+    <logger name="org.springframework.cloud.config.server" level="TRACE" />
     <logger name="com.google.code" level="INFO" />
     <logger name="net.rubyeye" level="INFO" />
 
@@ -17,6 +18,11 @@
     <logger name="httpclient.wire" />
 
     <logger name="org.apache.http" />
+
+    <!-- AWS SDK logging -->
+    <logger name="software.amazon.awssdk" level="DEBUG" />
+    <logger name="software.amazon.awssdk.services.s3" level="DEBUG" />
+    <logger name="software.amazon.awssdk.request" level="DEBUG" />
     <root level="DEBUG">
         <appender-ref ref="STDOUT" />
     </root>

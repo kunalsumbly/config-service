@@ -6,6 +6,23 @@
 
  The service can be configured using the following environment variables:
 
+ ### Configuration Backends
+
+ This service uses two configuration backends:
+
+ 1. **AWS S3**: Used for non-sensitive configuration like cache TTL, HTTP timeouts, and logging levels.
+ 2. **AWS Secrets Manager**: Used for sensitive information like secrets and passwords.
+
+ #### AWS S3 Configuration
+ - `SPRING_CLOUD_CONFIG_SERVER_AWSS3_BUCKET`: The S3 bucket name containing configuration files
+ - `SPRING_CLOUD_CONFIG_SERVER_AWSS3_REGION`: AWS region for the S3 bucket (default: ap-southeast-2)
+ - `SPRING_CLOUD_CONFIG_SERVER_AWSS3_USE_DIRECTORY_LAYOUT`: Whether to use directory layout for configuration files (default: true)
+
+ #### AWS Secrets Manager Configuration
+ - `SPRING_CLOUD_CONFIG_SERVER_AWS_SECRETS_MANAGER_REGION`: AWS region for Secrets Manager (default: ap-southeast-2)
+ - `SPRING_CLOUD_CONFIG_SERVER_AWS_SECRETS_MANAGER_NAME`: Path pattern for secrets (default: /config-secrets/${spring.application.name}/${spring.profiles.active})
+ - `SPRING_CLOUD_CONFIG_SERVER_AWS_SECRETS_MANAGER_FAIL_FAST`: Whether to fail fast if secrets cannot be retrieved (default: false)
+
  ### Server Configuration
  - `SERVER_PORT`: The port on which the service listens (default: 8888)
  - `SERVER_HOST`: The host used for internal calls to the busrefresh endpoint (default: localhost)

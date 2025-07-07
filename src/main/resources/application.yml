@@ -12,17 +12,43 @@ spring:
   application:
     name: config-service
   profiles:
-    active: awss3
+    active: composite
   cloud:
     config:
       server:
-        awss3:
-          bucket: test-kunal-pii-logs
-          region: ap-southeast-2
-          use-directory-layout: true
-    retry:
-      max-attempts: 6
-      initial-interval: 1000
-      max-interval: 10000
-      multiplier: 2.0
+        encrypt:
+          enabled: false
+        composite:
+          # AWS Secrets Manager - Higher priority (order: 1)
+          - type: awssecretsmanager
+            region: ap-southeast-2
+            prefix: /config-secrets
+            profileSeparator: /
+            order: 1
+          # AWS S3 - Lower priority (order: 2)
+          - type: awss3
+            region: ap-southeast-2
+            bucket: test-kunal-pii-logs
+            useDirectoryLayout: true
+            order: 2
+        # Disable fail-fast if you want the server to continue even if one backend fails
+        failOnCompositeError: true
 
+# Management endpoints for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
+
+aws:
+  region: ap-southeast-2
+  retry:
+    max-attempts: 3
+    backoff:
+      base-delay: 100ms
+      max-backoff-time: 20s
+
+encrypt:
+  key: "secret-key"
+  salt: "0123456789abcdef"

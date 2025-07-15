@@ -22,9 +22,11 @@ ext {
 }
 
 dependencies {
+	//implementation group: 'org.zalando.awspring.cloud', name: 'zalando-cloud-aws-kms', version: '3.3.1'
 	implementation 'org.springframework.cloud:spring-cloud-config-server'
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'software.amazon.awssdk:secretsmanager'
+	implementation 'software.amazon.awssdk:kms'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-logging'
 	implementation 'org.projectlombok:lombok:1.18.30'

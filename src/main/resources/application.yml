@@ -50,5 +50,10 @@ aws:
       max-backoff-time: 20s
 
 encrypt:
-  key: "secret-key"
-  salt: "0123456789abcdef"
+  key: "arn:aws:kms:ap-southeast-2:721431533455:key/9d3e8af7-0d17-4d8b-9ea6-89bbf643194c"
+
+
+logging:
+  level:
+    org.zalando.awsspring.cloud.bootstrap.encrypt: DEBUG
+    org.springframework.cloud.config.server.encryption: DEBUG

@@ -33,6 +33,7 @@ spring:
             order: 2
         # Disable fail-fast if you want the server to continue even if one backend fails
         failOnCompositeError: true
+        prefix: /config
 
 # Management endpoints for monitoring
 management:
@@ -49,6 +50,4 @@ aws:
       base-delay: 100ms
       max-backoff-time: 20s
 
-encrypt:
-  key: "secret-key"
-  salt: "0123456789abcdef"
+# Encryption configuration moved to AWS Secret Manager

@@ -1,11 +1,13 @@
 package com.polarbookshop.configservice.encryption;
 
+import com.polarbookshop.configservice.dto.RotateKeysRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -17,7 +19,7 @@ public class ConfigServerEncryptionController {
     private final EncryptionService encryptionService;
 
     /**
-     * Creates or updates encryption keys for a specific application and profile
+     * Creates encryption keys for a specific application and profile only if they don't already exist
      * @param appName The application name
      * @param profile The profile name
      * @return Success or error message
@@ -30,20 +32,33 @@ public class ConfigServerEncryptionController {
         log.info("Received request to create encryption keys for app: {} and profile: {}", appName, profile);
 
         try {
-            boolean success = encryptionService.createEncryptionKeys(appName, profile);
+            EncryptionService.KeyCreationResult result = encryptionService.createEncryptionKeys(appName, profile);
 
-            if (success) {
-                log.info("Successfully created encryption keys for app: {} and profile: {}", appName, profile);
-                return ResponseEntity.ok(Map.of(
-                        "status", "success",
-                        "message", "Encryption keys created successfully for " + appName + "/" + profile
-                ));
-            } else {
-                log.error("Failed to create encryption keys for app: {} and profile: {}", appName, profile);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                        "status", "error",
-                        "message", "Failed to create encryption keys"
-                ));
+            switch (result) {
+                case CREATED:
+                    log.info("Successfully created new encryption keys for app: {} and profile: {}", appName, profile);
+                    return ResponseEntity.ok(Map.of(
+                            "status", "success",
+                            "message", "New encryption keys created successfully for " + appName + "/" + profile
+                    ));
+                case ALREADY_EXISTS:
+                    log.info("Encryption keys already exist for app: {} and profile: {}", appName, profile);
+                    return ResponseEntity.ok(Map.of(
+                            "status", "success",
+                            "message", "Encryption keys already exist for " + appName + "/" + profile + ", no changes made"
+                    ));
+                case ERROR:
+                    log.error("Failed to create encryption keys for app: {} and profile: {}", appName, profile);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                            "status", "error",
+                            "message", "Failed to create encryption keys"
+                    ));
+                default:
+                    log.error("Unexpected result when creating encryption keys for app: {} and profile: {}", appName, profile);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                            "status", "error",
+                            "message", "Unexpected result when creating encryption keys"
+                    ));
             }
         } catch (Exception e) {
             log.error("Error creating encryption keys for app: {} and profile: {}", appName, profile, e);
@@ -55,10 +70,10 @@ public class ConfigServerEncryptionController {
     }
 
     /**
-     * Adds a secret to the shell secret container
+     * Adds secrets to the shell secret container
      * @param appName The application name
      * @param profile The profile name
-     * @param requestBody The request body containing the key and value
+     * @param requestBody The request body containing key-value pairs to store
      * @return Success or error message
      */
     @PostMapping("/add-secret/{appName}/{profile}")
@@ -67,37 +82,127 @@ public class ConfigServerEncryptionController {
             @PathVariable String profile,
             @RequestBody Map<String, String> requestBody) {
 
-        log.info("Received request to add secret for app: {} and profile: {}", appName, profile);
+        log.info("Received request to add secrets for app: {} and profile: {}", appName, profile);
 
-        if (!requestBody.containsKey("key") || !requestBody.containsKey("value")) {
-            log.error("Request body missing 'key' or 'value' field");
+        // Check if the request body contains the legacy format with 'key' and 'value' fields
+
+            // Handle new format with direct key-value pairs
+            if (requestBody.isEmpty()) {
+                log.error("Request body is empty");
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "Request body cannot be empty"
+                ));
+            }
+
+            try {
+                boolean success = encryptionService.addSecrets(appName, profile, requestBody);
+
+                if (success) {
+                    log.info("Successfully added {} secrets for app: {} and profile: {}", requestBody.size(), appName, profile);
+                    return ResponseEntity.ok(Map.of(
+                            "status", "success",
+                            "message", "Secrets added successfully for " + appName + "/" + profile
+                    ));
+                } else {
+                    log.error("Failed to add secrets for app: {} and profile: {}", appName, profile);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                            "status", "error",
+                            "message", "Failed to add secrets"
+                    ));
+                }
+            } catch (Exception e) {
+                log.error("Error adding secrets for app: {} and profile: {}", appName, profile, e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                        "status", "error",
+                        "message", "Error: " + e.getMessage()
+                ));
+            }
+
+    }
+
+    /**
+     * Rotates encryption keys and re-encrypts specified secrets
+     * @param appName The application name
+     * @param profile The profile name
+     * @param request The request body containing the list of secrets to rotate
+     * @return Success or error message
+     */
+    @PostMapping("/rotate-keys/{appName}/{profile}")
+    public ResponseEntity<Map<String, String>> rotateKeys(
+            @PathVariable String appName,
+            @PathVariable String profile,
+            @RequestBody RotateKeysRequest request) {
+
+        log.info("Received request to rotate encryption keys for app: {} and profile: {}", appName, profile);
+
+        if (request.getRotate() == null || request.getRotate().isEmpty()) {
+            log.error("Request body missing or empty 'rotate' field");
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "error",
-                    "message", "Request body must contain 'key' and 'value' fields"
+                    "message", "Request body must contain a non-empty 'rotate' field with the list of secrets to rotate"
             ));
         }
 
-        String key = requestBody.get("key");
-        String value = requestBody.get("value");
+        List<String> secretsToRotate = request.getRotate();
+        log.info("Secrets to rotate: {}", secretsToRotate);
 
         try {
-            boolean success = encryptionService.addSecret(appName, profile, key, value);
+            boolean success = encryptionService.rotateEncryptionKeys(appName, profile, secretsToRotate);
 
             if (success) {
-                log.info("Successfully added secret with key '{}' for app: {} and profile: {}", key, appName, profile);
+                log.info("Successfully rotated encryption keys for app: {} and profile: {}", appName, profile);
                 return ResponseEntity.ok(Map.of(
                         "status", "success",
-                        "message", "Secret added successfully for " + appName + "/" + profile
+                        "message", "Encryption keys rotated successfully for " + appName + "/" + profile
                 ));
             } else {
-                log.error("Failed to add secret with key '{}' for app: {} and profile: {}", key, appName, profile);
+                log.error("Failed to rotate encryption keys for app: {} and profile: {}", appName, profile);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                         "status", "error",
-                        "message", "Failed to add secret"
+                        "message", "Failed to rotate encryption keys"
                 ));
             }
         } catch (Exception e) {
-            log.error("Error adding secret with key '{}' for app: {} and profile: {}", key, appName, profile, e);
+            log.error("Error rotating encryption keys for app: {} and profile: {}", appName, profile, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "error",
+                    "message", "Error: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Gets all keys stored under a specific application and profile
+     * @param appName The application name
+     * @param profile The profile name
+     * @return List of keys or error message
+     */
+    @GetMapping("/get-all-keys/{appName}/{profile}")
+    public ResponseEntity<?> getAllKeys(
+            @PathVariable String appName,
+            @PathVariable String profile) {
+
+        log.info("Received request to get all keys for app: {} and profile: {}", appName, profile);
+
+        try {
+            List<String> keys = encryptionService.getAllKeys(appName, profile);
+
+            if (keys != null) {
+                log.info("Successfully retrieved {} keys for app: {} and profile: {}", keys.size(), appName, profile);
+                return ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "keys", keys
+                ));
+            } else {
+                log.error("Failed to retrieve keys for app: {} and profile: {}", appName, profile);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                        "status", "error",
+                        "message", "Failed to retrieve keys"
+                ));
+            }
+        } catch (Exception e) {
+            log.error("Error retrieving keys for app: {} and profile: {}", appName, profile, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "status", "error",
                     "message", "Error: " + e.getMessage()

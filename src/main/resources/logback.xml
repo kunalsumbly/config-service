@@ -1,11 +1,79 @@
 <configuration debug="true">
+<!--    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">-->
+<!--        &lt;!&ndash; encoders are assigned the type ch.qos.logback.classic.encoder.PatternLayoutEncoder by default &ndash;&gt;-->
+<!--        <encoder>-->
+<!--            <pattern>%date{dd-MMM-yyyy HH:mm:ss.SSS} [%X{_X_MOA_MSISDN_}] [%thread] %-5level %logger{36} - %msg%n</pattern>-->
+<!--        </encoder>-->
+<!--    </appender>-->
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <!-- encoders are assigned the type ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
-        <encoder>
-            <pattern>%date{dd-MMM-yyyy HH:mm:ss.SSS} [%X{_X_MOA_MSISDN_}] [%thread] %-5level %logger{36} - %msg%n</pattern>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+<!--            <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">-->
+<!--                <defaultMask>****</defaultMask>-->
+<!--                <value>([\w.-]+@[\w.-]+\.\w+)</value>-->
+<!--                <pathMask>-->
+<!--                    <paths>firstName,lastName,creditCardToken,phone,dateOfBirth,dateOfBirthX8,contactAddress,indentValue,userName,formattedAddressX9,cardNumberX8,newFormattedAddressX9,contactPhone</paths>-->
+<!--                </pathMask>-->
+<!--            </jsonGeneratorDecorator>-->
+            <providers>
+                <timestamp>
+                    <fieldName>@timestamp</fieldName>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <logLevel>
+                    <fieldName>log.level</fieldName>
+                </logLevel>
+                <threadName>
+                    <fieldName>log.thread.name</fieldName>
+                </threadName>
+                <contextName>
+                    <fieldName>service.name</fieldName>
+                </contextName>
+                <pattern>
+                    <pattern>
+                        {
+                        "cloud.account.id": "${ACCOUNT_ID}",
+                        "cloud.account.name": "${ACCOUNT_NAME}",
+                        "cloud.availability_zone": "${AVAILABILITY_ZONE}",
+                        "container.image.name": "${CONTAINER_IMAGE}",
+                        "cloud.instance.id": "${HOST_INSTANCE_ID}",
+                        "container.name": "${CONTAINER_NAME}",
+                        "cloud.provider": "${CLOUD_PROVIDER}",
+                        "cloud.region": "${REGION}",
+                        "container.started": "${STARTED_AT}",
+                        "host.name": "${HOST_NAME}",
+                        "host.ip": "${HOST_IP_ADDRESS}",
+                        "labels.ecs.task-arn": "${TASK_ARN}",
+                        "labels.env": "${MICRO_SERVICE_ACTIVE_PROFILE}",
+                        "labels.app": "${MICRO_SERVICE}"
+                        }
+                    </pattern>
+                </pattern>
+                <mdc/>
+                <arguments>
+                    <includeNonStructuredArguments>false</includeNonStructuredArguments>
+                </arguments>
+                <loggerName>
+                    <fieldName>log.logger</fieldName>
+                </loggerName>
+                <message>
+                    <fieldName>message</fieldName>
+                </message>
+                <throwableClassName>
+                    <fieldName>error.type</fieldName>
+                </throwableClassName>
+                <stackTrace>
+                    <fieldName>error.stack_trace</fieldName>
+                    <!-- maxLength - limit the length of the stack trace -->
+                    <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                        <maxDepthPerThrowable>200</maxDepthPerThrowable>
+                        <maxLength>5000</maxLength>
+                        <rootCauseFirst>true</rootCauseFirst>
+                    </throwableConverter>
+                </stackTrace>
+            </providers>
         </encoder>
     </appender>
-
 
 
 

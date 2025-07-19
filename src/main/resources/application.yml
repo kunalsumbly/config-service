@@ -11,29 +11,20 @@ server:
 spring:
   application:
     name: config-service
+
+  # No need to activate anything here if using on-profile blocks
   profiles:
     active: composite
+
   cloud:
     config:
       server:
+        git:
+          enabled: false
         encrypt:
           enabled: false
-        composite:
-          # AWS Secrets Manager - Higher priority (order: 1)
-          - type: awssecretsmanager
-            region: ap-southeast-2
-            prefix: /config-secrets
-            profileSeparator: /
-            order: 1
-          # AWS S3 - Lower priority (order: 2)
-          - type: awss3
-            region: ap-southeast-2
-            bucket: test-kunal-pii-logs
-            useDirectoryLayout: true
-            order: 2
-        # Disable fail-fast if you want the server to continue even if one backend fails
         failOnCompositeError: true
-        prefix: /config
+        prefix: ${config.base.context.path}
 
 # Management endpoints for monitoring
 management:
@@ -50,4 +41,45 @@ aws:
       base-delay: 100ms
       max-backoff-time: 20s
 
-# Encryption configuration moved to AWS Secret Manager
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: dev
+  cloud:
+    config:
+      server:
+        composite:
+          - type: awssecretsmanager
+            region: ap-southeast-2
+            prefix: /config-secrets
+            profileSeparator: /
+            order: 1
+          - type: awss3
+            region: ap-southeast-2
+            bucket: dev-config-bucket
+            useDirectoryLayout: true
+            order: 2
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: local
+  cloud:
+    config:
+      server:
+        composite:
+          - type: awssecretsmanager
+            region: ap-southeast-2
+            prefix: ${config.sm.prefix}
+            profileSeparator: ${config.sm.profile.separator}
+            order: 1
+          - type: awss3
+            region: ap-southeast-2
+            bucket: ${config.bucket.name}
+            useDirectoryLayout: true
+            order: 2

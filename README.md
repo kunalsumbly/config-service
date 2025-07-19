@@ -273,3 +273,74 @@ The base path for storing secrets in AWS Secrets Manager can be configured in `a
 ```yaml
 config.server.sm.base.path: /config-secrets (default value)
 ```
+
+### Profile Configuration
+
+The application uses Spring profiles to configure different environments (dev, test, local, prod, etc.). The configuration is structured as follows:
+
+1. **application.yml**: Contains the base configuration and profile-specific configurations using Spring's profile-specific blocks with the `---` separator. Each profile section defines its own configuration for AWS Secrets Manager and AWS S3.
+
+```yaml
+# Base configuration
+server:
+  port: 8888
+  
+spring:
+  profiles:
+    active: composite
+
+# Profile-specific configuration for 'dev'
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  cloud:
+    config:
+      server:
+        composite:
+          - type: awssecretsmanager
+            # dev-specific configuration
+          - type: awss3
+            bucket: dev-config-bucket
+            # other dev-specific configuration
+
+# Profile-specific configuration for 'local'
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  cloud:
+    config:
+      server:
+        composite:
+          - type: awssecretsmanager
+            # local-specific configuration
+          - type: awss3
+            bucket: ${config.bucket.name}
+            # other local-specific configuration
+```
+
+2. **application-<profile>.properties**: Contains profile-specific properties that are referenced in application.yml. For example, `application-local.properties` defines:
+
+```properties
+config.bucket.name=test-kunal-pii-logs
+```
+
+This value is then used in the `local` profile section of application.yml via the `${config.bucket.name}` placeholder.
+
+### Environment Configuration
+
+To activate a specific profile, you must set the `SPRING_PROFILES_ACTIVE` environment variable with two profiles:
+
+```
+SPRING_PROFILES_ACTIVE=<profile>,composite
+```
+
+For example:
+```
+SPRING_PROFILES_ACTIVE=local,composite
+```
+
+The `composite` profile is required alongside your environment-specific profile (dev, test, local, prod, etc.) for the configuration to work correctly. This enables the composite configuration server that combines multiple configuration sources (AWS Secrets Manager and AWS S3).

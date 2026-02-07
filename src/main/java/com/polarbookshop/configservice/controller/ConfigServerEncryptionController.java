@@ -1,6 +1,8 @@
-package com.polarbookshop.configservice.encryption;
+package com.polarbookshop.configservice.controller;
 
+import com.polarbookshop.configservice.dto.DecryptSecretRequest;
 import com.polarbookshop.configservice.dto.RotateKeysRequest;
+import com.polarbookshop.configservice.encryption.EncryptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -203,6 +205,68 @@ public class ConfigServerEncryptionController {
             }
         } catch (Exception e) {
             log.error("Error retrieving keys for app: {} and profile: {}", appName, profile, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "status", "error",
+                    "message", "Error: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Decrypts a secret using the encryption keys for a specific application and profile
+     * @param appName The application name
+     * @param profile The profile name
+     * @param request The request body containing the encrypted secret
+     * @return The decrypted plain text or error message
+     */
+    @PostMapping("/decrypt-secret/{appName}/{profile}")
+    public ResponseEntity<Map<String, String>> decryptSecret(
+            @PathVariable String appName,
+            @PathVariable String profile,
+            @RequestBody DecryptSecretRequest request) {
+
+        log.info("Received request to decrypt secret for app: {} and profile: {}", appName, profile);
+
+        if (request.getSecret() == null || request.getSecret().trim().isEmpty()) {
+            log.error("Request body missing or empty 'secret' field");
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Request body must contain a non-empty 'secret' field"
+            ));
+        }
+
+        String encryptedValue = request.getSecret().trim();
+        
+        // Check if the secret has the expected {cipher} prefix
+        if (!encryptedValue.startsWith("{cipher}")) {
+            log.error("Secret does not have the expected {{cipher}} prefix");
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "Secret must start with {cipher} prefix"
+            ));
+        }
+
+        // Remove the {cipher} prefix to get the actual encrypted value
+        String actualEncryptedValue = encryptedValue.substring(8); // Remove "{cipher}"
+
+        if (actualEncryptedValue.isEmpty()) {
+            log.error("No encrypted value found after {{cipher}} prefix");
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "No encrypted value found after {cipher} prefix"
+            ));
+        }
+
+        try {
+            String decryptedValue = encryptionService.decrypt(appName, profile, actualEncryptedValue);
+            
+            log.info("Successfully decrypted secret for app: {} and profile: {}", appName, profile);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "plaintext", decryptedValue
+            ));
+        } catch (Exception e) {
+            log.error("Error decrypting secret for app: {} and profile: {}", appName, profile, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "status", "error",
                     "message", "Error: " + e.getMessage()

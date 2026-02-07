@@ -1,0 +1,30 @@
+sequenceDiagram
+    participant GitLab
+    participant S3
+    participant SecretsManager as AWS Secrets Manager
+    participant ConfigServer as Spring Config Server
+    participant ConfigClient as API (Config Client)
+
+    GitLab->>S3: Push config files (application.yml etc.)
+    Note right of GitLab: CI/CD sync to S3 after merge to main
+
+    ConfigClient->>ConfigServer: GET /{appName}/{profile}
+    Note right of ConfigClient: On bootstrap or scaling out
+
+    ConfigServer->>S3: Fetch config for app/profile
+    ConfigServer->>SecretsManager: Fetch secrets for app/profile
+    ConfigServer-->>ConfigClient: Return merged config JSON
+
+    Note over ConfigClient: Secrets decrypted using encrypt.key/salt
+
+    loop Every 15 mins
+        ConfigClient->>ConfigServer: GET /{appName}/{profile}
+        ConfigServer->>S3: Fetch latest config
+        ConfigServer->>SecretsManager: Fetch latest secrets
+        ConfigServer-->>ConfigClient: Return merged config
+        alt Changes detected
+            ConfigClient->>ConfigClient: Rebind @RefreshScope beans
+        else No changes
+            ConfigClient->>ConfigClient: No refresh triggered
+        end
+    end
